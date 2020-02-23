@@ -11,17 +11,23 @@ public class Enemy : MonoBehaviour
     public float lookRadius =  10f;
     public float damage = 10f;
     public float attackWait = 1f;
+    
 
     private float attackTimer;
     Transform target;
     NavMeshAgent agent;
     Animator animator;
+    HUDManager hm;
+    AudioManager am;
     private GameObject _enemyModel;
     [SerializeField]private GameObject _ragdoll;
+    string[] zombieSounds = {"Zombie1", "Zombie2", "Zombie3"};
+    int rand;
 
     private void Awake()
     {
-
+        hm = FindObjectOfType<HUDManager>();
+        am = FindObjectOfType<AudioManager>();
         _ragdoll = this.gameObject.transform.parent.GetChild(0).gameObject;
         _enemyModel = this.gameObject;
         _ragdoll.gameObject.SetActive(false);
@@ -32,6 +38,31 @@ public class Enemy : MonoBehaviour
         target = PlayerTracker.tracker.player.transform;
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        if (MainMenu.difficulty == 1)
+        {
+            health = 100f;
+            lookRadius = 50f;
+            damage = 10f;
+            attackWait = 1f;
+        }
+        else if (MainMenu.difficulty == 2)
+        {
+            health = 100f;
+            lookRadius = 80f;
+            damage = 20f;
+            attackWait = 1f;
+            agent.speed = 25;
+        }
+        else if (MainMenu.difficulty == 3)
+        {
+            health = 125f;
+            lookRadius = 150f;
+            damage = 25f;
+            attackWait = 1f;
+            agent.speed = 30;
+        }
+
+        rand = Random.Range(0, 2);
     }
 
     private void Update()
@@ -44,11 +75,15 @@ public class Enemy : MonoBehaviour
             agent.SetDestination(target.position);
             faceTarget();
             animator.SetBool("Running", true);
+            am.Play(zombieSounds[rand]);
 
 
         }
         if(agent.hasPath == false || agent.remainingDistance < 1f)
-        { Patrol(); }
+        { 
+            Patrol();
+        }
+       
         if (distance< 10 && Time.time > attackTimer)
         {
             target.GetComponent<PlayerStatus>().takeDamage(damage);
@@ -66,7 +101,7 @@ public class Enemy : MonoBehaviour
 
     private void Patrol()
     {
-        Vector3 randomPosition = new Vector3(Random.Range(-100, 100), 0, Random.Range(-100, 100));
+        Vector3 randomPosition = new Vector3(Random.Range(-50, 50), 0, Random.Range(-50, 50));
         var goToPosition = transform.position + randomPosition;
         agent.SetDestination(goToPosition);
         animator.SetBool("Running", true);
@@ -96,6 +131,9 @@ public class Enemy : MonoBehaviour
         _ragdoll.gameObject.SetActive(true);
         _enemyModel.gameObject.SetActive(false);
         agent.enabled = false;
+
+        hm.UpdateKills();
+        
     }
 
     private void OnDrawGizmos()
