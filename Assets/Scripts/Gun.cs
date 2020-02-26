@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Gun : MonoBehaviour
 {
-
+    #region Variables
     public float damage = 25f;
     public Camera fpsCamera;
     private int ignoreLayerMask = ~(1 << 10);
@@ -17,6 +17,7 @@ public class Gun : MonoBehaviour
     public float nextShot;
     public float clipAmount = 6;
     bool isReloading;
+    bool isShooting;
     public Animator anim;
     public GameObject impactEffect;
     public GameObject impactEffect2;
@@ -25,6 +26,7 @@ public class Gun : MonoBehaviour
     public AudioManager audioManager;
     public Light gunLight;
     HUDManager hm;
+    #endregion
 
 
     private void Awake()
@@ -50,15 +52,12 @@ public class Gun : MonoBehaviour
             }
         }
         
-        if (Input.GetMouseButtonDown(0) && Time.time > nextShot)
+        if (Input.GetMouseButtonDown(0) && Time.time > nextShot && !isShooting)
         {
-            
-            Shoot();            
-            nextShot = Time.time + fireRate;
-
-
+            isShooting = true;            
+            StartCoroutine(Shoot());            
+            nextShot = Time.time + fireRate; 
         }
-        //gunLight.intensity = Mathf.Lerp(lightFlash, 0f, Time.deltaTime * lightFadeTime);
 
     }
 
@@ -84,61 +83,67 @@ public class Gun : MonoBehaviour
         yield return new WaitForSeconds(.15f);
         gunLight.enabled = false;
     }
-    private void Shoot()
+    IEnumerator Shoot()
     {
         if (clipAmount == 0 && !isReloading)
         {
 
             audioManager.Play("DryGun");
-            return;
+            isShooting = false;
+            yield break;
         }
-        else if (isReloading)
+        if (isReloading && isShooting)
         {
-            return;
-        }        
+            isShooting = false;
+            yield break;
+        }
         else
         {
             clipAmount--;
-            hm.ammoCount(clipAmount);            
+            hm.ammoCount(clipAmount);
+            anim.SetBool("Shoot", true);
+            muzzleFlash.Play(true);
+            audioManager.Play("PistolFire");
+            StartCoroutine(LightFlash());
+
+
+            RaycastHit hit;
+            if (Physics.Raycast(fpsCamera.transform.position, fpsCamera.transform.forward, out hit, Mathf.Infinity, ignoreLayerMask))
+            {
+                Debug.Log(hit.transform.tag);
+
+
+                Enemy enemy = hit.transform.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.takeDamage(damage);
+                }
+                if (hit.rigidbody != null)
+                {
+                    hit.rigidbody.AddForce(-hit.normal * impactForce);
+
+                }
+
+                if (hit.transform.tag == "Enemy")
+                {
+                    GameObject impactTemp4 = Instantiate(impactEffect4, hit.point, Quaternion.LookRotation(hit.normal));
+
+                    Destroy(impactTemp4, 2f);
+                }
+                else
+                {
+                    GameObject impactTemp = Instantiate(impactEffect, hit.point, Quaternion.LookRotation(hit.normal));
+                    GameObject impactTemp2 = Instantiate(impactEffect2, hit.point, Quaternion.LookRotation(hit.normal));
+                    GameObject impactTemp3 = Instantiate(impactEffect3, hit.point, Quaternion.LookRotation(hit.normal));
+
+                    Destroy(impactTemp3, 2f);
+                    Destroy(impactTemp2, 5f);
+                    Destroy(impactTemp, 1f);
+                }
+            };
+            yield return new WaitForSeconds(.25f);
+            anim.SetBool("Shoot", false);
+            isShooting = false;
         }
-        muzzleFlash.Play(true);
-        audioManager.Play("PistolFire");
-        StartCoroutine(LightFlash());
-
-        RaycastHit hit;
-        if (Physics.Raycast(fpsCamera.transform.position, fpsCamera.transform.forward, out hit, Mathf.Infinity, ignoreLayerMask))
-        {
-            Debug.Log(hit.transform.tag);
-
-            
-            Enemy enemy = hit.transform.GetComponent<Enemy>();
-            if (enemy != null)
-            {
-                enemy.takeDamage(damage);
-            }
-            //gunLight.intensity = lightFlash;
-            if(hit.rigidbody != null)
-            {
-                hit.rigidbody.AddForce(-hit.normal * impactForce);
-                
-            }
-
-            if (hit.transform.tag == "Enemy")
-            {
-                GameObject impactTemp4 = Instantiate(impactEffect4, hit.point, Quaternion.LookRotation(hit.normal));
-
-                Destroy(impactTemp4, 2f);
-            }
-            else 
-            { 
-            GameObject impactTemp = Instantiate(impactEffect, hit.point, Quaternion.LookRotation(hit.normal));
-            GameObject impactTemp2 = Instantiate(impactEffect2, hit.point, Quaternion.LookRotation(hit.normal));
-            GameObject impactTemp3 = Instantiate(impactEffect3, hit.point, Quaternion.LookRotation(hit.normal));
-
-            Destroy(impactTemp3, 2f);
-            Destroy(impactTemp2, 5f);
-            Destroy(impactTemp, 1f);
-            }
-        };
     }
 }
