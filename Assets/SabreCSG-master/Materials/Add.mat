@@ -20,11 +20,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs: []
     m_Floats:
-    - _FaceToggle: 0
+    - _FaceToggle: 1
     - _GridAlpha: 0.136
     - _GridSize: 1
     - _GridStrength: 0.3
     - _GridThickness: 0.03
-    - _GridToggle: 1
+    - _GridToggle: 0
     m_Colors:
     - _Color: {r: 0.13955145, g: 0.46905822, b: 0.6037736, a: 0.2}
